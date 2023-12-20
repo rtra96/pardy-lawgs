@@ -16,7 +16,6 @@ const getAllParties = async () => {
     return parties;
   } catch (error) {
     console.error(error);
-    console.log(parties);
   }
 };
 
@@ -33,80 +32,71 @@ const getPartyById = async (id) => {
 
 // delete party
 const deleteParty = async (id) => {
-  const deleteParty = async (id) => {
-    try {
-      const response = await fetch(`${PARTIES_API_URL}/${id}`, {
-        method: 'DELETE',
-      });
-  
-      if (response.ok) {
-        console.log(`Party with ID ${id} deleted successfully.`);
-      } else {
-        console.error(`Failed to delete party with ID ${id}.`);
-      }
-    } catch (error) {
-      console.error(error);
+  try {
+    const response = await fetch(`${PARTIES_API_URL}/${id}`, {
+      method: 'DELETE',
+    });
+
+    if (response.ok) {
+      console.log(`Party with ID ${id} deleted successfully.`);
+    } else {
+      console.error(`Failed to delete party with ID ${id}.`);
     }
-  };
+  } catch (error) {
+    console.error(error);
+  }
 };
 
 // render a single party by id
 const renderSinglePartyById = async (id) => {
   try {
-    // fetch party details from server
+    // Fetch party details, guests, and rsvps
     const party = await getPartyById(id);
-
-    // GET - /api/workshop/guests/party/:partyId - get guests by party id
-    const guestsResponse = await fetch(`${GUESTS_API_URL}/party/${id}`);
+    const guestsResponse = await fetch(`${GUESTS_API_URL}?partyId=${id}`);
     const guests = await guestsResponse.json();
-
-    // GET - /api/workshop/rsvps/party/:partyId - get RSVPs by partyId
-    const rsvpsResponse = await fetch(`${RSVPS_API_URL}/party/${id}`);
+    const rsvpsResponse = await fetch(`${RSVPS_API_URL}?partyId=${id}`);
     const rsvps = await rsvpsResponse.json();
-
-    // GET - get all gifts by party id - /api/workshop/parties/gifts/:partyId 
-    const giftsResponse = await fetch(`${PARTIES_API_URL}/parties/gifts/${id}`);
-    const gifts = await giftsResponse.json();
+    console.log(guests);
 
     // create new HTML element to display party details
     const partyDetailsElement = document.createElement('div');
     partyDetailsElement.classList.add('party-details');
     partyDetailsElement.innerHTML = `
-            <h2>${party.title}</h2>
-            <p>${party.event}</p>
-            <p>${party.city}</p>
-            <p>${party.state}</p>
-            <p>${party.country}</p>
-            <h3>Guests:</h3>
-            <ul>
-            ${guests
+      <h2>${party.title}</h2>
+      <p>${party.event}</p>
+      <p>${party.city}</p>
+      <p>${party.state}</p>
+      <p>${party.country}</p>
+      <h3>Guests:</h3>
+      <ul>
+        ${guests && rsvps
+          ? guests
               .map(
                 (guest, index) => `
-              <li>
-                <div>${guest.name}</div>
-                <div>${rsvps[index].status}</div>
-              </li>
-            `
+                  <li>
+                    <div>${guest.name}</div>
+                    <div>${rsvps[index].status}</div>
+                  </li>
+                `
               )
-              .join('')}
-          </ul>
-          
-
-
-            <button class="close-button">Close</button>
-        `;
-    partyContainer.appendChild(partyDetailsElement);
+              .join('')
+          : 'Guests information not available'}
+      </ul>
+      <button class="close-button">Close</button>
+    `;
 
     // add event listener to close button
     const closeButton = partyDetailsElement.querySelector('.close-button');
     closeButton.addEventListener('click', () => {
       partyDetailsElement.remove();
     });
+
+    // append the details element to the container
+    partyContainer.appendChild(partyDetailsElement);
   } catch (error) {
     console.error(error);
   }
 };
-
 // render all parties
 const renderParties = async (parties) => {
   try {
@@ -125,15 +115,15 @@ const renderParties = async (parties) => {
             `;
       const deleteButton = partyElement.querySelector('.delete-button');
       deleteButton.addEventListener('click', async (event) => {
-      const partyId = event.currentTarget.dataset.id;
-            
-              // Delete the party
-              await deleteParty(partyId);
-            
-              // Fetch parties again and render them
-              const updatedParties = await getAllParties();
-              renderParties(updatedParties);
-            });      
+        const partyId = event.currentTarget.dataset.id;
+
+        // Delete the party
+        await deleteParty(partyId);
+
+        // Fetch parties again and render them
+        const updatedParties = await getAllParties();
+        renderParties(updatedParties);
+      });
       partyContainer.appendChild(partyElement);
 
       // see details
@@ -141,10 +131,9 @@ const renderParties = async (parties) => {
       detailsButton.addEventListener('click', async (event) => {
         const partyId = event.currentTarget.dataset.id;
         await renderSinglePartyById(partyId);
+        
       });
-
       // delete party
-      
       deleteButton.addEventListener('click', async (event) => {
         const partyId = event.currentTarget.dataset.id;
         await deleteParty(partyId);
@@ -164,7 +153,6 @@ const init = async () => {
     renderParties(parties);
   } catch (error) {
     console.error(error);
-    
   }
 };
 
